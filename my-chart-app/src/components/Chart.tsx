@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import data from '../data/chartData.json';
+import { toPng } from 'html-to-image';
 
 interface DataPoint {
   timestamp: string;
@@ -11,6 +12,7 @@ interface DataPoint {
 
 const Chart: React.FC<{ timeframe: string }> = ({ timeframe }) => {
   const [filteredData, setFilteredData] = useState<DataPoint[]>([]);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Filter data based on the selected timeframe
@@ -31,17 +33,37 @@ const Chart: React.FC<{ timeframe: string }> = ({ timeframe }) => {
     setFilteredData(filtered);
   }, [timeframe]);
 
+  const exportChart = () => {
+    if (chartRef.current) {
+      toPng(chartRef.current)
+        .then((dataUrl) => {
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = 'chart.png';
+          link.click();
+        })
+        .catch((error) => {
+          console.error('Failed to export chart', error);
+        });
+    }
+  };
+
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      <LineChart data={filteredData}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="timestamp" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Line type="monotone" dataKey="value" stroke="#8884d8" activeDot={{ r: 8 }} />
-      </LineChart>
-    </ResponsiveContainer>
+    <div>
+      <div ref={chartRef}>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={filteredData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="timestamp" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="value" stroke="#8884d8" activeDot={{ r: 8 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <button onClick={exportChart}>Export as PNG</button>
+    </div>
   );
 };
 
